@@ -3,7 +3,9 @@ package common
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 func GetCommandOutputWithoutErr(cmd string, args []string) string {
@@ -28,4 +30,13 @@ func GetCommandOutputWithoutErr(cmd string, args []string) string {
 	}
 
 	return string(out)
+}
+
+func IsK8sLocal() bool {
+	home := os.Getenv("HOME")
+	if _, err := os.Stat(filepath.Clean(home + "/.kube/config")); err == nil {
+		return true
+	}
+
+	return false
 }
