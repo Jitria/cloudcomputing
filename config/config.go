@@ -1,17 +1,35 @@
 package config
 
 import (
+	"assign/common"
 	"assign/types"
+	"context"
+	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/docker/docker/client"
 )
 
 var GlobalConfig types.GlobalConfig
 
 func LoadConfig() {
-	GlobalConfig.CRI = getCRISocket()
-	GlobalConfig.Gin = setupRouter()
+	var err error
+	if GlobalConfig.CRI = getCRISocket(); GlobalConfig.CRI == "" {
+		common.StopProgram(fmt.Errorf("No CRI"))
+	}
+	GlobalConfig.Gin = gin.Default()
+	if GlobalConfig.KubernetesClient, err = initLocalAPIClient(); err != nil {
+		common.StopProgram(err)
+	}
+	if GlobalConfig.DockerClient, err = initDockerClient(); err != nil {
+		common.StopProgram(err)
+	}
+
 }
 
 /**********************/
@@ -42,7 +60,33 @@ func getCRISocket() string {
 	return ""
 }
 
-func setupRouter() *gin.Engine {
-	r := gin.Default()
-	return r
+func initLocalAPIClient() (*kubernetes.Clientset, error) {
+	kubeconfig := os.Getenv("HOME") + "/.kube/config"
+	if _, err := os.Stat(filepath.Clean(kubeconfig)); err != nil {
+		return nil, err
+	}
+
+	cf, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	ncf, err := kubernetes.NewForConfig(cf)
+	if err != nil {
+		return nil, err
+	}
+
+	return ncf, nil
+}
+
+func initDockerClient() (*client.Client, error) {
+	var err error
+	client, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	client.NegotiateAPIVersion(context.Background())
+
+	return client, nil
 }

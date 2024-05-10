@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,4 +40,11 @@ func IsK8sLocal() bool {
 	}
 
 	return false
+}
+
+func StopProgram(err error) {
+	if err != nil {
+		log.Printf("Error occurred: %s\n", err)
+	}
+	os.Exit(0)
 }
