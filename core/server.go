@@ -1,9 +1,9 @@
 package core
 
-import "assign/config"
-
 func Assign() {
-	CreateServiceAndContainer(config.GlobalConfig.KubernetesClient)
+	// 서비스 생성
+	SetupEnvironment()
+
 	// db container 생성
 	// db container 식별
 	// container 관리(생성, db 관리)

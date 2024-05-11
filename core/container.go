@@ -1,6 +1,7 @@
 package core
 
 import (
+	"assign/types"
 	"context"
 	"fmt"
 
@@ -14,57 +15,100 @@ import (
 )
 
 var (
-	cNs = make(map[string]int) //name:count
+	cNs              = make(map[int]types.ContainerNService) //name:count
+	currentcontainer int
 )
 
-func CreateMariaDBContainer(cli *client.Client) error {
+const totalcontainer = 100
+
+func SetupEnvironment() {
 	makeMap()
+}
+
+func makeMap() {
+	cNs[0] = types.ContainerNService{Service: "service0", Container: 0}
+	cNs[1] = types.ContainerNService{Service: "service1", Container: 0}
+	cNs[2] = types.ContainerNService{Service: "service2", Container: 0}
+	cNs[3] = types.ContainerNService{Service: "service3", Container: 0}
+	cNs[4] = types.ContainerNService{Service: "service4", Container: 0}
+	cNs[5] = types.ContainerNService{Service: "service5", Container: 0}
+	cNs[6] = types.ContainerNService{Service: "service6", Container: 0}
+	cNs[7] = types.ContainerNService{Service: "service7", Container: 0}
+	cNs[8] = types.ContainerNService{Service: "service8", Container: 0}
+	cNs[9] = types.ContainerNService{Service: "service9", Container: 0}
+}
+
+func CreateMariaDBContainer(cli *client.Client) error {
 	//pv
 	//pvc
 	//dbdeploy
 	//deservice
 	return nil
 }
-func makeMap() {
-	cNs["service1"] = 0
-	cNs["service2"] = 0
-	cNs["service3"] = 0
-	cNs["service4"] = 0
-	cNs["service5"] = 0
-	cNs["service6"] = 0
-	cNs["service7"] = 0
-	cNs["service8"] = 0
-	cNs["service9"] = 0
-	cNs["service10"] = 0
-}
-func CreateServiceContainer(clientset *kubernetes.Clientset) error {
-	service := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "service1",
-		},
-		Spec: v1.ServiceSpec{
-			Selector: map[string]string{
-				"app": "ubuntu",
+func createServiceContainer(clientset *kubernetes.Clientset) error {
+	for _, item := range cNs {
+
+		service := &v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: item.Service,
 			},
-			Ports: []v1.ServicePort{
-				{
-					Protocol:   "TCP",
-					Port:       80,
-					TargetPort: intstr.FromInt(8080),
+			Spec: v1.ServiceSpec{
+				Selector: map[string]string{
+					"app": "ubuntu",
 				},
+				Ports: []v1.ServicePort{
+					{
+						Protocol:   "TCP",
+						Port:       80,
+						TargetPort: intstr.FromInt(8080),
+					},
+				},
+				Type: v1.ServiceTypeLoadBalancer,
 			},
-			Type: v1.ServiceTypeLoadBalancer,
-		},
-	}
+		}
 
-	_, err := clientset.CoreV1().Services("default").Create(context.TODO(), service, metav1.CreateOptions{})
-	if err != nil {
-		return err
-	}
+		_, err := clientset.CoreV1().Services("default").Create(context.TODO(), service, metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
 
-	fmt.Println("Service 'service1' created successfully.")
+		// serviceinfo, err := clientset.CoreV1().Services("default").Get(context.TODO(), item.Service, metav1.GetOptions{})
+		// if err != nil {
+		// 	return err
+		// }
+		// serviceinfo.Spec.ClusterIP
+
+	}
 	return nil
 }
+
+func findAvailableNodePort(clientset *kubernetes.Clientset, startPort, endPort int32) (int32, error) {
+	for port := startPort; port <= endPort; port++ {
+		services, err := clientset.CoreV1().Services("default").List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return 0, err
+		}
+
+		portUsed := false
+		for _, service := range services.Items {
+			for _, servicePort := range service.Spec.Ports {
+				if servicePort.NodePort == port {
+					portUsed = true
+					break
+				}
+			}
+			if portUsed {
+				break
+			}
+		}
+
+		if !portUsed {
+			return port, nil
+		}
+	}
+	return 0, fmt.Errorf("no available port found in the range %d-%d", startPort, endPort)
+}
+
 func CreateUbuntuContainer(clientset *kubernetes.Clientset) error {
 	deploymentsClient := clientset.AppsV1().Deployments(apiv1.NamespaceDefault)
 
