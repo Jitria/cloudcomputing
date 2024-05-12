@@ -4,7 +4,6 @@ import (
 	"assign/common"
 	"assign/types"
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +13,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/docker/docker/client"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 var GlobalConfig types.GlobalConfig
@@ -29,9 +27,6 @@ func LoadConfig() {
 		common.StopProgram(err)
 	}
 	if GlobalConfig.DockerClient, err = initDockerClient(); err != nil {
-		common.StopProgram(err)
-	}
-	if GlobalConfig.DB, err = setUpDB(); err != nil {
 		common.StopProgram(err)
 	}
 
@@ -94,17 +89,4 @@ func initDockerClient() (*client.Client, error) {
 	client.NegotiateAPIVersion(context.Background())
 
 	return client, nil
-}
-
-func setUpDB() (*sql.DB, error) {
-	db, err := sql.Open("mysql", "root:qwer1234@tcp(10.108.175.39:3306)/test")
-	if err != nil {
-		return nil, err
-	}
-
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
-
-	return db, nil
 }

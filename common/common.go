@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -47,4 +48,37 @@ func StopProgram(err error) {
 		log.Printf("Error occurred: %s\n", err)
 	}
 	os.Exit(0)
+}
+
+var current = "a"
+
+func GetNSName() string {
+	defer func() {
+		var carry int
+		for i := len(current) - 1; i >= 0; i-- {
+			if current[i] < 'z' {
+				current = current[:i] + string(current[i]+1) + current[i+1:]
+				break
+			} else {
+				carry++
+				current = current[:i] + "a" + current[i+1:]
+			}
+		}
+		if carry > 0 {
+			current = "a" + current
+		}
+	}()
+	return current
+}
+
+func GetServerIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP.String()
 }

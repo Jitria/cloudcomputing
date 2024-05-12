@@ -1,7 +1,13 @@
 package handler
 
 import (
+	"assign/common"
 	"assign/config"
+	"assign/core"
+	"assign/logger"
+	"net/http"
+
+	"assign/types"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,27 +31,23 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
-// StartHandler starts the server with the configured routes.
 func StartHandler() error {
 	config.GlobalConfig.Gin.Use(CORSMiddleware())
 
-	// block := config.GlobalConfig.Gin.Group("/block")
-	// {
-	// 	ip := block.Group("/ip")
-	// 	{
-	// 		ip.GET("/list", blockIPv4List)
-	// 		ip.PUT("/on", blockIPv4BlockOn)
-	// 		ip.PUT("/off", blockIPv4BlockOff)
-	// 	}
-	// 	mac := block.Group("/mac")
-	// 	{
-	// 		mac.GET("/list", blockMACList)
-	// 		mac.PUT("/on", blockMACBlockOn)
-	// 		mac.PUT("/off", blockMACBlockOff)
-	// 	}
-	// }
+	config.GlobalConfig.Gin.GET("/login", login)
+	manager := config.GlobalConfig.Gin.Group("/Manager")
+	{
+		regist := manager.Group("/regist")
+		{
+			regist.PUT("/person", registPerson)
+		}
+		delete := manager.Group("/delete")
+		{
+			delete.DELETE("/person", deletePerson)
+		}
+	}
 
-	config.GlobalConfig.Gin.Run(":8081")
+	config.GlobalConfig.Gin.Run(":5000")
 	return nil
 }
 
@@ -53,5 +55,72 @@ func StartHandler() error {
 /*  func   */
 /////////////
 
-func isExistingUser(c *gin.Context) {
+func login(c *gin.Context) {
+	var person types.Person
+	if err := c.BindJSON(&person); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return
+	}
+
+	if person.ID == "" || person.Position == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID and Position are required"})
+		return
+	}
+
+	if person.Position == "manager" {
+		if person.ID == "nsm" {
+			c.JSON(http.StatusOK, gin.H{"message": "Manager login successfully"})
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		}
+	} else if person.Position == "user" {
+		if ok := logger.IsExist(person.ID); !ok {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		} else {
+			info := logger.GetInfo(person.ID)
+			c.JSON(http.StatusOK, gin.H{"info": info})
+		}
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid position"})
+	}
+}
+
+func registPerson(c *gin.Context) {
+	var person types.Person
+	if err := c.BindJSON(&person); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return
+	}
+
+	if person.ID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID is required"})
+		return
+	}
+
+	if err := logger.RegistPerson(person.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register person"})
+		return
+	} else {
+		info := core.MakeServer()
+		info.StudentID = person.ID
+		logger.UpdateInfo(info)
+		info.Ip = common.GetServerIP()
+		c.JSON(http.StatusOK, gin.H{"message": "Person registered successfully", "server_info": info})
+	}
+}
+
+func deletePerson(c *gin.Context) {
+	var person types.Person
+	if person.ID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID is required"})
+		return
+	}
+
+	err := logger.DeletePerson(person.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete person"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Person deleted successfully"})
 }

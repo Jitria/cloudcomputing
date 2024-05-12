@@ -16,7 +16,19 @@ type GlobalConfig struct {
 	DB               *sql.DB
 }
 
-type ContainerNService struct {
-	Service   string
-	Container int
+type Person struct {
+	ID string `json:"id"`
+
+	// == //
+	Position string `json:"position"`
+}
+
+type Info struct {
+	NodePort       int    `json:"nodePort"`
+	DeploymentName string `json:"deploymentName"`
+	ServiceName    string `json:"serviceName"`
+
+	// == //
+	StudentID string `json:"studentID"`
+	Ip        string `json:"ip"`
 }
