@@ -74,7 +74,7 @@ func login(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		}
 	} else if person.Position == "user" {
-		if ok := logger.IsExist(person.ID); !ok {
+		if ok := logger.IsIDExist(person.ID); !ok {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		} else {
 			info := logger.GetInfo(person.ID)
@@ -97,13 +97,20 @@ func registPerson(c *gin.Context) {
 		return
 	}
 
+	if ok := logger.IsIDExist(person.ID); ok {
+		info := logger.GetInfo(person.ID)
+		info.StudentID = person.ID
+		c.JSON(http.StatusConflict, gin.H{"error": "User is already exist", "server_info": info})
+		return
+	}
+
 	if err := logger.RegistPerson(person.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register person"})
 		return
 	} else {
 		info := core.MakeServer()
 		info.StudentID = person.ID
-		logger.UpdateInfo(info)
+		logger.RegistInfo(info)
 		info.Ip = common.GetServerIP()
 		c.JSON(http.StatusOK, gin.H{"message": "Person registered successfully", "server_info": info})
 	}

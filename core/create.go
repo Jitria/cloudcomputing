@@ -6,7 +6,6 @@ import (
 	"assign/types"
 	"context"
 	"fmt"
-	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -152,32 +151,3 @@ func createUbuntuContainer(clientset *kubernetes.Clientset, name string) error {
 }
 
 func int32Ptr(i int32) *int32 { return &i }
-
-/////////////////
-/*  checking   */
-/////////////////
-func CheckDeploymentStatus(deploymentName, namespace string) error {
-	for i := 0; i < 10; i++ {
-		deployment, err := config.GlobalConfig.KubernetesClient.AppsV1().Deployments(namespace).Get(context.TODO(), deploymentName, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-
-		if deployment.Status.AvailableReplicas > 0 {
-			fmt.Printf("Deployment is running.\n")
-			return nil
-		}
-
-		fmt.Println("Deployment is not running yet. Retrying in 5 seconds...")
-		time.Sleep(5 * time.Second)
-	}
-
-	return fmt.Errorf("Deployment is not running.")
-}
-
-func CheckServiceStatus(serviceName, namespace string) error {
-	time.Sleep(10 * time.Second)
-
-	fmt.Printf("Service is running.\n")
-	return nil
-}
