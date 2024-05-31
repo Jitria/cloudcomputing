@@ -13,15 +13,13 @@ import (
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockerimage "github.com/docker/docker/api/types/image"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 )
 
 func Monitor() {
-	go monitorDeployment()
-	go monitorContainer()
+	go monitorPod()
 	go monitorService()
 	go makeImage()
 }
@@ -36,12 +34,12 @@ type snapShot struct {
 }
 
 func makeImage() {
-	ticker := time.NewTicker(1 * time.Minute)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			exists := logger.GetdeploymentNames()
+			exists := logger.GetpodNames()
 			deleteImage(exists)
 			snapShotInfos := getCommitInfo(exists)
 			commitContainer(snapShotInfos)
@@ -109,42 +107,7 @@ func commitContainer(snapShotInfos []snapShot) {
 /*  monitor   */
 ////////////////
 
-func monitorDeployment() {
-	var info types.Info
-	watcher, err := config.GlobalConfig.KubernetesClient.AppsV1().Deployments("default").Watch(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		common.StopProgram(err)
-	}
-	for event := range watcher.ResultChan() {
-		deployment, ok := event.Object.(*appsv1.Deployment)
-		if !ok {
-			fmt.Println("Unexpected object type")
-			continue
-		}
-
-		switch event.Type {
-		case watch.Added, watch.Modified:
-			var id string
-			if id, err = logger.GetStudentID(info, "deploymentName"); id == "" {
-				continue
-			}
-			info.StudentID = id
-			info.PodName = deployment.Name
-			logger.UpdateInfo(info, "deploymentName")
-		case watch.Deleted:
-			var id string
-			if id, err = logger.GetStudentID(info, "deploymentName"); id == "" {
-				continue
-			}
-			info.StudentID = id
-			logger.UpdateInfo(info, "deploymentName")
-		case watch.Error:
-			fmt.Printf("Error occurred: %v\n", event.Object)
-		}
-	}
-}
-
-func monitorContainer() {
+func monitorPod() {
 	watcher, err := config.GlobalConfig.KubernetesClient.CoreV1().Pods("default").Watch(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		common.StopProgram(err)
@@ -162,10 +125,11 @@ func monitorContainer() {
 		case watch.Modified:
 			fmt.Printf("Pod %s modified\n", pod.Name)
 			for _, container := range pod.Spec.Containers {
-				fmt.Printf("Container name: %s\n", container.Name)
+				fmt.Printf("Pod name: %s\n", container.Name)
 			}
 		case watch.Deleted:
 			fmt.Printf("Pod %s deleted\n", pod.Name)
+			RebuildUbuntuContainer(config.GlobalConfig.KubernetesClient, pod.Name)
 		case watch.Error:
 			fmt.Printf("Error occurred: %v\n", event.Object)
 		}

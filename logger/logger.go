@@ -31,7 +31,7 @@ func RegistPerson(ID string) error {
 }
 
 func RegistInfo(info types.Info) error {
-	query := "UPDATE info SET deploymentName=?, serviceName=?, nodePort=? WHERE studentID=?"
+	query := "UPDATE info SET podName=?, serviceName=?, nodePort=? WHERE studentID=?"
 
 	_, err := config.GlobalConfig.DB.Exec(query, info.PodName, info.ServiceName, info.NodePort, info.StudentID)
 	if err != nil {
@@ -46,8 +46,8 @@ func UpdateInfo(info types.Info, attr string) error {
 	var err error
 
 	switch attr {
-	case "deploymentName":
-		query = "UPDATE info SET deploymentName=? WHERE studentID=?"
+	case "podName":
+		query = "UPDATE info SET podName=? WHERE studentID=?"
 		_, err = config.GlobalConfig.DB.Exec(query, info.PodName, info.StudentID)
 	case "serviceName":
 		query = "UPDATE info SET serviceName=? WHERE studentID=?"
@@ -77,7 +77,7 @@ func DeletePerson(ID string) error {
 }
 
 func GetInfo(ID string) types.Info {
-	query := "SELECT nodePort, deploymentName, serviceName FROM info WHERE studentID = ?"
+	query := "SELECT nodePort, podName, serviceName FROM info WHERE studentID = ?"
 
 	var info types.Info
 	var err error
@@ -89,8 +89,8 @@ func GetInfo(ID string) types.Info {
 	return info
 }
 
-func GetdeploymentNames() []string {
-	query := "SELECT DISTINCT deploymentName FROM info"
+func GetpodNames() []string {
+	query := "SELECT DISTINCT podName FROM info"
 
 	rows, err := config.GlobalConfig.DB.Query(query)
 	if err != nil {
@@ -98,20 +98,20 @@ func GetdeploymentNames() []string {
 	}
 	defer rows.Close()
 
-	var deploymentNames []string
+	var podNames []string
 	for rows.Next() {
-		var deploymentName string
-		err := rows.Scan(&deploymentName)
+		var podName string
+		err := rows.Scan(&podName)
 		if err != nil {
 			common.StopProgram(err)
 		}
-		deploymentNames = append(deploymentNames, deploymentName)
+		podNames = append(podNames, podName)
 	}
 	if err := rows.Err(); err != nil {
 		common.StopProgram(err)
 	}
 
-	return deploymentNames
+	return podNames
 }
 
 func GetserviceNames() []string {
@@ -144,8 +144,8 @@ func GetStudentID(info types.Info, attr string) (string, error) {
 	var err error
 
 	switch attr {
-	case "deploymentName":
-		query = "SELECT studentID FROM info WHERE deploymentName=?"
+	case "podName":
+		query = "SELECT studentID FROM info WHERE podName=?"
 		err = config.GlobalConfig.DB.QueryRow(query, info.PodName).Scan(&info.StudentID)
 	case "serviceName":
 		query = "SELECT studentID FROM info WHERE serviceName=?"

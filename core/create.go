@@ -135,4 +135,39 @@ func createUbuntuContainer(clientset *kubernetes.Clientset) (string, error) {
 	return name, nil
 }
 
+func RebuildUbuntuContainer(clientset *kubernetes.Clientset, imagename string) (string, error) {
+	name := imagename
+	imagename = imagename + ":latest"
+	podsClient := clientset.CoreV1().Pods(corev1.NamespaceDefault)
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				"app": name,
+			},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:            name,
+					Image:           imagename,
+					ImagePullPolicy: corev1.PullNever,
+					Command: []string{
+						"/bin/bash",
+						"-c",
+						"service ssh start && sleep infinity",
+					},
+				},
+			},
+		},
+	}
+
+	_, err := podsClient.Create(context.TODO(), pod, metav1.CreateOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	return name, nil
+}
+
 func int32Ptr(i int32) *int32 { return &i }
