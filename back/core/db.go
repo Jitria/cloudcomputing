@@ -58,7 +58,7 @@ func makeSecret() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	abspath := filepath.Join(u.HomeDir, "/cloudcomputing/yaml/db/env.db")
+	abspath := filepath.Join(u.HomeDir, "/cloudcomputing/back/db/env.db")
 	file, err := os.Open(abspath)
 	if err != nil {
 		panic(err)
@@ -100,7 +100,7 @@ func makePV() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	abspath := filepath.Join(u.HomeDir + "/cloudcomputing/yaml/db/pv.yaml")
+	abspath := filepath.Join(u.HomeDir + "/cloudcomputing/back/db/pv.yaml")
 
 	yamlFile, err := os.ReadFile(abspath)
 	if err != nil {
@@ -164,7 +164,7 @@ func makePVC(clientset *kubernetes.Clientset) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	abspath := filepath.Join(u.HomeDir, "/cloudcomputing/yaml/db/pvc.yaml")
+	abspath := filepath.Join(u.HomeDir, "/cloudcomputing/back/db/pvc.yaml")
 
 	yamlFile, err := os.ReadFile(abspath)
 	if err != nil {
