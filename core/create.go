@@ -80,7 +80,7 @@ func createUbuntuService(clientset *kubernetes.Clientset, port int, podName stri
 			Ports: []corev1.ServicePort{
 				{
 					Protocol:   "TCP",
-					Port:       int32(port),
+					Port:       int32(22),
 					TargetPort: intstr.FromInt(22),
 					NodePort:   int32(port),
 				},
@@ -108,6 +108,9 @@ func createUbuntuContainer(clientset *kubernetes.Clientset) (string, error) {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
+			Labels: map[string]string{
+				"app": name,
+			},
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
