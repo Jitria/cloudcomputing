@@ -24,9 +24,9 @@ type Person struct {
 }
 
 type Info struct {
-	NodePort       int    `json:"nodePort"`
-	DeploymentName string `json:"deploymentName"`
-	ServiceName    string `json:"serviceName"`
+	NodePort    int    `json:"nodePort"`
+	PodName     string `json:"podName"`
+	ServiceName string `json:"serviceName"`
 
 	// == //
 	StudentID string `json:"studentID"`

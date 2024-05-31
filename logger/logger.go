@@ -4,6 +4,7 @@ import (
 	"assign/common"
 	"assign/config"
 	"assign/types"
+	"database/sql"
 )
 
 func ClearDB() error {
@@ -32,7 +33,7 @@ func RegistPerson(ID string) error {
 func RegistInfo(info types.Info) error {
 	query := "UPDATE info SET deploymentName=?, serviceName=?, nodePort=? WHERE studentID=?"
 
-	_, err := config.GlobalConfig.DB.Exec(query, info.DeploymentName, info.ServiceName, info.NodePort, info.StudentID)
+	_, err := config.GlobalConfig.DB.Exec(query, info.PodName, info.ServiceName, info.NodePort, info.StudentID)
 	if err != nil {
 		common.StopProgram(err)
 	}
@@ -47,7 +48,7 @@ func UpdateInfo(info types.Info, attr string) error {
 	switch attr {
 	case "deploymentName":
 		query = "UPDATE info SET deploymentName=? WHERE studentID=?"
-		_, err = config.GlobalConfig.DB.Exec(query, info.DeploymentName, info.StudentID)
+		_, err = config.GlobalConfig.DB.Exec(query, info.PodName, info.StudentID)
 	case "serviceName":
 		query = "UPDATE info SET serviceName=? WHERE studentID=?"
 		_, err = config.GlobalConfig.DB.Exec(query, info.ServiceName, info.StudentID)
@@ -80,7 +81,7 @@ func GetInfo(ID string) types.Info {
 
 	var info types.Info
 	var err error
-	err = config.GlobalConfig.DB.QueryRow(query, ID).Scan(&info.NodePort, &info.DeploymentName, &info.ServiceName)
+	err = config.GlobalConfig.DB.QueryRow(query, ID).Scan(&info.NodePort, &info.PodName, &info.ServiceName)
 	if err != nil {
 		common.StopProgram(err)
 	}
@@ -88,14 +89,64 @@ func GetInfo(ID string) types.Info {
 	return info
 }
 
-func GetStudentID(info types.Info, attr string) string {
+func GetdeploymentNames() []string {
+	query := "SELECT DISTINCT deploymentName FROM info"
+
+	rows, err := config.GlobalConfig.DB.Query(query)
+	if err != nil {
+		common.StopProgram(err)
+	}
+	defer rows.Close()
+
+	var deploymentNames []string
+	for rows.Next() {
+		var deploymentName string
+		err := rows.Scan(&deploymentName)
+		if err != nil {
+			common.StopProgram(err)
+		}
+		deploymentNames = append(deploymentNames, deploymentName)
+	}
+	if err := rows.Err(); err != nil {
+		common.StopProgram(err)
+	}
+
+	return deploymentNames
+}
+
+func GetserviceNames() []string {
+	query := "SELECT DISTINCT serviceName FROM info"
+
+	rows, err := config.GlobalConfig.DB.Query(query)
+	if err != nil {
+		common.StopProgram(err)
+	}
+	defer rows.Close()
+
+	var serviceNames []string
+	for rows.Next() {
+		var serviceName string
+		err := rows.Scan(&serviceName)
+		if err != nil {
+			common.StopProgram(err)
+		}
+		serviceNames = append(serviceNames, serviceName)
+	}
+	if err := rows.Err(); err != nil {
+		common.StopProgram(err)
+	}
+
+	return serviceNames
+}
+
+func GetStudentID(info types.Info, attr string) (string, error) {
 	var query string
 	var err error
 
 	switch attr {
 	case "deploymentName":
 		query = "SELECT studentID FROM info WHERE deploymentName=?"
-		err = config.GlobalConfig.DB.QueryRow(query, info.DeploymentName).Scan(&info.StudentID)
+		err = config.GlobalConfig.DB.QueryRow(query, info.PodName).Scan(&info.StudentID)
 	case "serviceName":
 		query = "SELECT studentID FROM info WHERE serviceName=?"
 		err = config.GlobalConfig.DB.QueryRow(query, info.ServiceName).Scan(&info.StudentID)
@@ -105,9 +156,12 @@ func GetStudentID(info types.Info, attr string) string {
 	}
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil
+		}
 		common.StopProgram(err)
 	}
-	return info.StudentID
+	return info.StudentID, nil
 }
 
 func IsIDExist(ID string) bool {

@@ -50,25 +50,46 @@ func StopProgram(err error) {
 	os.Exit(0)
 }
 
-var current = "a"
+var currentServer = "a"
 
-func GetNSName() string {
+func GetServerName() string {
 	defer func() {
 		var carry int
-		for i := len(current) - 1; i >= 0; i-- {
-			if current[i] < 'z' {
-				current = current[:i] + string(current[i]+1) + current[i+1:]
+		for i := len(currentServer) - 1; i >= 0; i-- {
+			if currentServer[i] < 'z' {
+				currentServer = currentServer[:i] + string(currentServer[i]+1) + currentServer[i+1:]
 				break
 			} else {
 				carry++
-				current = current[:i] + "a" + current[i+1:]
+				currentServer = currentServer[:i] + "a" + currentServer[i+1:]
 			}
 		}
 		if carry > 0 {
-			current = "a" + current
+			currentServer = "a" + currentServer
 		}
 	}()
-	return current
+	return currentServer
+}
+
+var currentPod = "a"
+
+func GetPodName() string {
+	defer func() {
+		var carry int
+		for i := len(currentPod) - 1; i >= 0; i-- {
+			if currentPod[i] < 'z' {
+				currentPod = currentPod[:i] + string(currentPod[i]+1) + currentPod[i+1:]
+				break
+			} else {
+				carry++
+				currentPod = currentPod[:i] + "a" + currentPod[i+1:]
+			}
+		}
+		if carry > 0 {
+			currentPod = "a" + currentPod
+		}
+	}()
+	return currentPod
 }
 
 func GetServerIP() string {
